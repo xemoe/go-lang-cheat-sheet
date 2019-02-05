@@ -3,25 +3,25 @@
 # Index
 1. [Basic Syntax](#basic-syntax)
 2. [Operators](#operators)
-  * [Arithmetic](#arithmetic)
-  * [Comparison](#comparison)
-  * [Logical](#logical)
-  * [Other](#other)
+    * [Arithmetic](#arithmetic)
+    * [Comparison](#comparison)
+    * [Logical](#logical)
+    * [Other](#other)
 3. [Declarations](#declarations)
 4. [Functions](#functions)
-  * [Functions as values and closures](#functions-as-values-and-closures)
-  * [Variadic Functions](#variadic-functions)
+    * [Functions as values and closures](#functions-as-values-and-closures)
+    * [Variadic Functions](#variadic-functions)
 5. [Built-in Types](#built-in-types)
 6. [Type Conversions](#type-conversions)
 7. [Packages](#packages)
 8. [Control structures](#control-structures)
-  * [If](#if)
-  * [Loops](#loops)
-  * [Switch](#switch)
+    * [If](#if)
+    * [Loops](#loops)
+    * [Switch](#switch)
 9. [Arrays, Slices, Ranges](#arrays-slices-ranges)
-  * [Arrays](#arrays)
-  * [Slices](#slices)
-  * [Operations on Arrays and Slices](#operations-on-arrays-and-slices)
+    * [Arrays](#arrays)
+    * [Slices](#slices)
+    * [Operations on Arrays and Slices](#operations-on-arrays-and-slices)
 10. [Maps](#maps)
 11. [Structs](#structs)
 12. [Pointers](#pointers)
@@ -29,11 +29,15 @@
 14. [Embedding](#embedding)
 15. [Errors](#errors)
 16. [Concurrency](#concurrency)
-  * [Goroutines](#goroutines)
-  * [Channels](#channels)
-  * [Channel Axioms](#channel-axioms)
-17. [Snippets](#snippets)
-  * [Http-Server](#http-server)
+    * [Goroutines](#goroutines)
+    * [Channels](#channels)
+    * [Channel Axioms](#channel-axioms)
+17. [Printing](#printing)
+18. [Reflection](#reflection)
+    * [Type Switch](#type-switch)
+    * [Examples](https://github.com/a8m/reflect-examples)
+19. [Snippets](#snippets)
+    * [Http-Server](#http-server)
 
 ## Credits
 
@@ -44,14 +48,14 @@ If you're new to Go, do that tour. Seriously.
 
 * Imperative language
 * Statically typed
-* Syntax similar to Java/C/C++, but less parantheses and no semicolons
+* Syntax tokens similar to C (but less parentheses and no semicolons) and the structure to Oberon-2
 * Compiles to native code (no JVM)
 * No classes, but structs with methods
 * Interfaces
 * No implementation inheritance. There's [type embedding](http://golang.org/doc/effective%5Fgo.html#embedding), though.
 * Functions are first class citizens
 * Functions can return multiple values
-* Go has closures
+* Has closures
 * Pointers, but not pointer arithmetic
 * Built-in concurrency primitives: Goroutines and Channels
 
@@ -80,7 +84,7 @@ func main() {
 |`/`|quotient|
 |`%`|remainder|
 |`&`|bitwise and|
-|`|`|bitwise or|
+|`\|`|bitwise or|
 |`^`|bitwise xor|
 |`&^`|bit clear (and not)|
 |`<<`|left shift|
@@ -100,7 +104,7 @@ func main() {
 |Operator|Description|
 |--------|-----------|
 |`&&`|logical and|
-|`||`|logical or|
+|`\|\|`|logical or|
 |`!`|logical not|
 
 ### Other
@@ -180,15 +184,15 @@ func another_scope() func() int{
 }
 
 
-// Closures: don't mutate outer vars, instead redefine them!
+// Closures
 func outer() (func() int, int) {
     outer_var := 2
     inner := func() int {
-        outer_var += 99 // attempt to mutate outer_var from outer scope
-        return outer_var // => 101 (but outer_var is a newly redefined
-                         //         variable visible only inside inner)
+        outer_var += 99 // outer_var from outer scope is mutated.
+        return outer_var
     }
-    return inner, outer_var // => 101, 2 (outer_var is still 2, not mutated by foo!)
+    inner()
+    return inner, outer_var // return inner func and mutated outer_var 101
 }
 ```
 
@@ -197,7 +201,7 @@ func outer() (func() int, int) {
 func main() {
 	fmt.Println(adder(1, 2, 3)) 	// 6
 	fmt.Println(adder(9, 9))	// 18
-	
+
 	nums := []int{10, 20, 30}
 	fmt.Println(adder(nums...))	// 60
 }
@@ -243,12 +247,12 @@ f := float64(i)
 u := uint(f)
 ```
 
-## Packages 
-* package declaration at top of every source file
-* executables are in package `main`
-* convention: package name == last name of import path (import path `math/rand` => package `rand`)
-* upper case identifier: exported (visible from other packages)
-* Lower case identifier: private (not visible from other packages) 
+## Packages
+* Package declaration at top of every source file
+* Executables are in package `main`
+* Convention: package name == last name of import path (import path `math/rand` => package `rand`)
+* Upper case identifier: exported (visible from other packages)
+* Lower case identifier: private (not visible from other packages)
 
 ## Control structures
 
@@ -256,19 +260,21 @@ u := uint(f)
 ```go
 func main() {
 	// Basic one
-	if x > 0 {
+	if x > 10 {
 		return x
+	} else if x == 10 {
+		return 10
 	} else {
 		return -x
 	}
-    	
+
 	// You can put one statement before the condition
 	if a := b + c; a < 42 {
 		return a
 	} else {
 		return a - 42
 	}
-    
+
 	// Type assertion inside if
 	var val interface{}
 	val = "foo"
@@ -305,9 +311,27 @@ func main() {
         fmt.Println("Other")
     }
 
-    // as with for and if, you can have an assignment statement before the switch value 
+    // as with for and if, you can have an assignment statement before the switch value
     switch os := runtime.GOOS; os {
     case "darwin": ...
+    }
+
+    // you can also make comparisons in switch cases
+    number := 42
+    switch {
+        case number < 42:
+            fmt.Println("Smaller")
+        case number == 42:
+            fmt.Println("Equal")
+        case number > 42:
+            fmt.Println("Greater")
+    }
+
+    // cases can be presented in comma-separated lists
+    var char byte = '?'
+    switch char {
+        case ' ', '?', '&', '=', '#', '+', '%':
+            fmt.Println("Should escape")
     }
 ```
 
@@ -336,6 +360,8 @@ var b = a[lo:hi]	// creates a slice (view of the array) from index lo to hi-1
 var b = a[1:4]		// slice from index 1 to 3
 var b = a[:3]		// missing low index implies 0
 var b = a[3:]		// missing high index implies len(a)
+a =  append(a,17,3)	// append items to slice a
+c := append(a,b...)	// concatenate slices a and b
 
 // create a slice with make
 a = make([]byte, 5, 5)	// first arg length, second capacity
@@ -390,13 +416,17 @@ var m = map[string]Vertex{
     "Google":    {37.42202, -122.08408},
 }
 
+// iterate over map content
+for key, value := range m {
+}
+
 ```
 
 ## Structs
 
 There are no classes, only structs. Structs can have methods.
 ```go
-// A struct is a type. It's also a collection of fields 
+// A struct is a type. It's also a collection of fields
 
 // Declaration
 type Vertex struct {
@@ -405,7 +435,8 @@ type Vertex struct {
 
 // Creating
 var v = Vertex{1, 2}
-var v = Vertex{X: 1, Y: 2} // Creates a struct by defining values with keys 
+var v = Vertex{X: 1, Y: 2} // Creates a struct by defining values with keys
+var v = []Vertex{{1,2},{5,2},{5,5}} // Initialize a slice of structs
 
 // Accessing members
 v.X = 4
@@ -428,7 +459,7 @@ func (v *Vertex) add(n float64) {
 }
 
 ```
-**Anonymous structs:**  
+**Anonymous structs:**
 Cheaper and safer than using `map[string]interface{}`.
 ```go
 point := struct {
@@ -444,7 +475,7 @@ r := &Vertex{1, 2} // r is also a pointer to a Vertex
 
 // The type of a pointer to a Vertex is *Vertex
 
-var s *Vertex = new(Vertex) // new creates a pointer to a new struct instance 
+var s *Vertex = new(Vertex) // new creates a pointer to a new struct instance
 ```
 
 ## Interfaces
@@ -505,8 +536,8 @@ func doStuff() (int, error) {
 }
 
 func main() {
-    result, error := doStuff()
-    if (error != nil) {
+    result, err := doStuff()
+    if err != nil {
         // handle error
     } else {
         // all is good, use result
@@ -541,12 +572,12 @@ ch := make(chan int) // create a channel of type int
 ch <- 42             // Send a value to the channel ch.
 v := <-ch            // Receive a value from ch
 
-// Non-buffered channels block. Read blocks when no value is available, write blocks if a value already has been written but not read.
+// Non-buffered channels block. Read blocks when no value is available, write blocks until there is a read.
 
 // Create a buffered channel. Writing to a buffered channels does not block if less than <buffer size> unread values have been written.
 ch := make(chan int, 100)
 
-close(c) // closes the channel (only sender should close)
+close(ch) // closes the channel (only sender should close)
 
 // read from channel and test if it has been closed
 v, ok := <-ch
@@ -603,10 +634,49 @@ func doStuff(channelOut, channelIn chan int) {
   c <- 2
   close(c)
   for i := 0; i < 3; i++ {
-      fmt.Printf("%d ", <-c) 
+      fmt.Printf("%d ", <-c)
   }
   // 1 2 0
   ```
+
+## Printing
+
+```go
+fmt.Println("Hello, 你好, नमस्ते, Привет, ᎣᏏᏲ") // basic print, plus newline
+p := struct { X, Y int }{ 17, 2 }
+fmt.Println( "My point:", p, "x coord=", p.X ) // print structs, ints, etc
+s := fmt.Sprintln( "My point:", p, "x coord=", p.X ) // print to string variable
+
+fmt.Printf("%d hex:%x bin:%b fp:%f sci:%e",17,17,17,17.0,17.0) // c-ish format
+s2 := fmt.Sprintf( "%d %f", 17, 17.0 ) // formatted print to string variable
+
+hellomsg := `
+ "Hello" in Chinese is 你好 ('Ni Hao')
+ "Hello" in Hindi is नमस्ते ('Namaste')
+` // multi-line string literal, using back-tick at beginning and end
+```
+
+## Reflection
+### Type Switch
+A type switch is like a regular switch statement, but the cases in a type switch specify types (not values), and those values are compared against the type of the value held by the given interface value.
+```go
+func do(i interface{}) {
+	switch v := i.(type) {
+	case int:
+		fmt.Printf("Twice %v is %v\n", v, v*2)
+	case string:
+		fmt.Printf("%q is %v bytes long\n", v, len(v))
+	default:
+		fmt.Printf("I don't know about type %T!\n", v)
+	}
+}
+
+func main() {
+	do(21)
+	do("hello")
+	do(true)
+}
+```
 
 # Snippets
 
@@ -637,3 +707,5 @@ func main() {
 //     ServeHTTP(w http.ResponseWriter, r *http.Request)
 // }
 ```
+
+
